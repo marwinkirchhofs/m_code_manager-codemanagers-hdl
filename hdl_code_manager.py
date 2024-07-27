@@ -12,8 +12,8 @@ from operator import itemgetter
 import inspect
 
 import code_manager
-from hdl_module_interface import HdlModuleInterface
-from hdl_xilinx_debug_core_manager import XilinxDebugCoreManager
+from .hdl_module_interface import HdlModuleInterface
+from .hdl_xilinx_debug_core_manager import XilinxDebugCoreManager
 
 
 LANG_IDENTIFIERS = ["hdl"]
@@ -158,6 +158,11 @@ more or less just here for testing purposes, and to remind myself to definitely
 get into that at some point. Sorry about that...
 """
 
+    # TODO: with the enforced git repo for projects, _command_project can't act 
+    # anymore from within an existing project: remove everything that does not 
+    # assume that you are within an existing project; make sure that for 
+    # everything that you would want to change on an existing project, there is 
+    # a specific command
     def _command_project(self, subcommand=["xilinx", "lattice"],
                          target=None, part=None, board_part=None, top=None,
                          hdl_lib=None, xil_tool=None,
