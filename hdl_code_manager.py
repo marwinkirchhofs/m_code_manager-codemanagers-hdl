@@ -17,6 +17,7 @@ from .hdl_xilinx_debug_core_manager import XilinxDebugCoreManager
 
 
 LANG_IDENTIFIERS = ["hdl"]
+HDL_PROJECT_TYPES = ["xilinx", "lattice"]
 
 
 class _BoardSpecs():
@@ -134,10 +135,29 @@ class HdlCodeManager(code_manager.CodeManager):
             'COMMAND_UPDATE':               "update",
     }
 
+    PROJECT_SUBMODULES = {
+            "xilinx": {
+                "scripts_xilinx": {
+                    "path": "scripts_xil",
+                }
+            },
+            "lattice": {
+            },
+    }
+
     def __init__(self):
         # why passing the language to the base class init? See (way too 
         # extensive) comment in python_code_manager
         self.xilinx_debug_core_manager = XilinxDebugCoreManager()
+
+        # TODO: sets xilinx as a hard default, change later on in the `project` 
+        # command
+        self.static_submodules = {
+                "scripts": {
+                    "path": ""
+                    },
+                }
+
         super().__init__("hdl")
 
     COMMAND_DESC_PROJECT = \
@@ -158,12 +178,39 @@ more or less just here for testing purposes, and to remind myself to definitely
 get into that at some point. Sorry about that...
 """
 
+    def _get_submodules(self):
+        """read the project_type of the current project, if 
+        a FILE_PROJECT_CONFIG exists in the current working directory (aka if 
+        you are in a project directory). Depending on the project type, add the 
+        submodules belonging to that vendor to the static self.static_submodules
+        """
+        if os.path.exists(self.PLACEHOLDERS['FILE_PROJECT_CONFIG']):
+            with open(self.PLACEHOLDERS['FILE_PROJECT_CONFIG'], 'r') as f_in:
+                project_config = json.load(f_in)
+            try:
+                project_type = project_config["project_type"]
+            except KeyError:
+                project_type = ""
+
+            if project_type:
+                dynamic_submodules = self._get_dynamic_submodules(project_type)
+
+            return {**self.static_submodules, **dynamic_submodules}
+        else:
+            return self.static_submodules
+
+    def _get_dynamic_submodules(self, project_type):
+        if project_type in HDL_PROJECT_TYPES:
+            return self.PROJECT_SUBMODULES[project_type]
+        else:
+            return {}
+
     # TODO: with the enforced git repo for projects, _command_project can't act 
     # anymore from within an existing project: remove everything that does not 
     # assume that you are within an existing project; make sure that for 
     # everything that you would want to change on an existing project, there is 
     # a specific command
-    def _command_project(self, subcommand=["xilinx", "lattice"],
+    def _command_project(self, subcommand=HDL_PROJECT_TYPES,
                          target=None, part=None, board_part=None, top=None,
                          hdl_lib=None, xil_tool=None,
                          **kwargs):
@@ -216,7 +263,7 @@ get into that at some point. Sorry about that...
         # wrong about the last sentence (today is the 2024-03-24)...
         project_dirs = itemgetter(
                 'DIR_RTL', 'DIR_CONSTRAINTS', 'DIR_SIM', 'DIR_TB',
-                'DIR_SCRIPTS', 'DIR_XILINX_HW_BUILD_LOG', 'DIR_HW_EXPORT',
+                'DIR_XILINX_HW_BUILD_LOG', 'DIR_HW_EXPORT',
                 'DIR_XILINX_IPS',
                 )(self.PLACEHOLDERS)
         for directory in project_dirs:
@@ -237,41 +284,41 @@ get into that at some point. Sorry about that...
         # SCRIPTING
         ############################################################
 
-        ##############################
-        # BUILD FILE MANAGEMENT
-        ##############################
+#         ##############################
+#         # BUILD FILE MANAGEMENT
+#         ##############################
+# 
+#         s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_MANAGE_BUILDS'])
+#         if self._check_target_edit_allowed(s_target_file):
+#             template_out = self._load_template("manage_build_files")
+#             self._write_template(template_out, s_target_file)
 
-        s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_MANAGE_BUILDS'])
-        if self._check_target_edit_allowed(s_target_file):
-            template_out = self._load_template("manage_build_files")
-            self._write_template(template_out, s_target_file)
+#         ##############################
+#         # PYTHON JSON INTERFACE
+#         ##############################
+#         # (makefile helper)
+# 
+#         s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_READ_JSON_VAR'])
+#         if self._check_target_edit_allowed(s_target_file):
+#             template_out = self._load_template("get_json_variable")
+#             self._write_template(template_out, s_target_file)
 
-        ##############################
-        # PYTHON JSON INTERFACE
-        ##############################
-        # (makefile helper)
+#         ##############################
+#         # SIM MAKEFILE
+#         ##############################
+# 
+#         s_target_file = os.path.join(self.PLACEHOLDERS['DIR_SIM'], "makefile")
+#         if self._check_target_edit_allowed(s_target_file):
+#             template_out = self._load_template("makefile_sim")
+#             self._write_template(template_out, s_target_file)
 
-        s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_READ_JSON_VAR'])
-        if self._check_target_edit_allowed(s_target_file):
-            template_out = self._load_template("get_json_variable")
-            self._write_template(template_out, s_target_file)
-
-        ##############################
-        # SIM MAKEFILE
-        ##############################
-
-        s_target_file = os.path.join(self.PLACEHOLDERS['DIR_SIM'], "makefile")
-        if self._check_target_edit_allowed(s_target_file):
-            template_out = self._load_template("makefile_sim")
-            self._write_template(template_out, s_target_file)
-
-        # GLOBAL MAKE VARS
-        s_target_file = self.PLACEHOLDERS['FILE_MAKE_VARIABLES']
-        if self._check_target_edit_allowed(s_target_file):
-            template_out = self._load_template("make_var")
-            self._write_template(template_out, s_target_file)
+#         # GLOBAL MAKE VARS
+#         s_target_file = self.PLACEHOLDERS['FILE_MAKE_VARIABLES']
+#         if self._check_target_edit_allowed(s_target_file):
+#             template_out = self._load_template("make_var")
+#             self._write_template(template_out, s_target_file)
 
         ##############################
         # TCL SCRIPTS
@@ -289,59 +336,59 @@ get into that at some point. Sorry about that...
             else:
                 board_specs = _BoardSpecs("", "")
 
-            # project generation script
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_CREATE_PROJECT'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("xilinx_create_project", {
-                                "PRJ_NAME": os.path.basename(os.getcwd()),
-                                "SIMULATOR_LANGUAGE": "Mixed",
-                                "TARGET_LANGUAGE": "Verilog",
-                                })
-                self._write_template(template_out, s_target_file)
+#             # project generation script
+#             s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_CREATE_PROJECT'])
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("xilinx_create_project", {
+#                                 "PRJ_NAME": os.path.basename(os.getcwd()),
+#                                 "SIMULATOR_LANGUAGE": "Mixed",
+#                                 "TARGET_LANGUAGE": "Verilog",
+#                                 })
+#                 self._write_template(template_out, s_target_file)
 
-            # read sources script
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_READ_SOURCES'])
-            if hdl_lib is not None:
-                s_set_vhdl_lib = f"-library {hdl_lib}"
-            else:
-                s_set_vhdl_lib = ""
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("xilinx_read_sources", {
-                                "HDL_LIB": s_set_vhdl_lib,
-                                })
-                self._write_template(template_out, s_target_file)
+#             # read sources script
+#             s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_READ_SOURCES'])
+#             if hdl_lib is not None:
+#                 s_set_vhdl_lib = f"-library {hdl_lib}"
+#             else:
+#                 s_set_vhdl_lib = ""
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("xilinx_read_sources", {
+#                                 "HDL_LIB": s_set_vhdl_lib,
+#                                 })
+#                 self._write_template(template_out, s_target_file)
 
-            # hardware build helpers script
-            # DIR_XILINX_LOG
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_BUILD_HW'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("xilinx_build_hw")
-                self._write_template(template_out, s_target_file)
+#             # hardware build helpers script
+#             # DIR_XILINX_LOG
+#             s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_BUILD_HW'])
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("xilinx_build_hw")
+#                 self._write_template(template_out, s_target_file)
 
-            # project management script
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_MANAGE_XIL_PRJ'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("xilinx_manage_project")
-                self._write_template(template_out, s_target_file)
+#             # project management script
+#             s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_MANAGE_XIL_PRJ'])
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("xilinx_manage_project")
+#                 self._write_template(template_out, s_target_file)
 
-            # source helper scripts script
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_SOURCE_HELPERS'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("xilinx_source_helper_scripts")
-                self._write_template(template_out, s_target_file)
+#             # source helper scripts script
+#             s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_SOURCE_HELPERS'])
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("xilinx_source_helper_scripts")
+#                 self._write_template(template_out, s_target_file)
 
-            # generate xilinx IPs
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'],
-                    self.PLACEHOLDERS['SCRIPT_XILINX_IP_GENERATION'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("generate_xips")
-                self._write_template(template_out, s_target_file)
+#             # generate xilinx IPs
+#             s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'],
+#                     self.PLACEHOLDERS['SCRIPT_XILINX_IP_GENERATION'])
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("generate_xips")
+#                 self._write_template(template_out, s_target_file)
 
             # xilinx IP definition file
             s_target_file = os.path.join(
@@ -351,27 +398,27 @@ get into that at some point. Sorry about that...
                 template_out = self._load_template("xips_def_user")
                 self._write_template(template_out, s_target_file)
 
-            # vio control interface script
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_SCRIPTS'],
-                    self.PLACEHOLDERS['SCRIPT_XILINX_VIO_CONTROL'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("xilinx_vio_ctrl")
-                self._write_template(template_out, s_target_file)
+#             # vio control interface script
+#             s_target_file = os.path.join(
+#                     self.PLACEHOLDERS['DIR_SCRIPTS'],
+#                     self.PLACEHOLDERS['SCRIPT_XILINX_VIO_CONTROL'])
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("xilinx_vio_ctrl")
+#                 self._write_template(template_out, s_target_file)
 
-            ##############################
-            # MAKEFILE
-            ##############################
-            # default xil_tool to vivado
-            if xil_tool is None:
-                xil_tool = "vivado"
-            s_target_file = "makefile"
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("xilinx_makefile", {
-                                "XILINX_TOOL": xil_tool,
-                                "PRJ_NAME": os.path.basename(os.getcwd()),
-                                })
-                self._write_template(template_out, s_target_file)
+#             ##############################
+#             # MAKEFILE
+#             ##############################
+#             # default xil_tool to vivado
+#             if xil_tool is None:
+#                 xil_tool = "vivado"
+#             s_target_file = "makefile"
+#             if self._check_target_edit_allowed(s_target_file):
+#                 template_out = self._load_template("xilinx_makefile", {
+#                                 "XILINX_TOOL": xil_tool,
+#                                 "PRJ_NAME": os.path.basename(os.getcwd()),
+#                                 })
+#                 self._write_template(template_out, s_target_file)
 
             ##############################
             # CONSTRAINTS FILE
@@ -416,6 +463,7 @@ get into that at some point. Sorry about that...
             s_target_file = self.PLACEHOLDERS['FILE_PROJECT_CONFIG']
             if self._check_target_edit_allowed(s_target_file):
                 d_config = {
+                    "project_type": subcommand,
                     "part": part,
                     "board_part": board_specs.xilinx_board_specifier,
                     "top": s_top_module,
