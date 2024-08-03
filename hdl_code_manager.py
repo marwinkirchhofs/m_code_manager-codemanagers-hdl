@@ -151,13 +151,17 @@ class HdlCodeManager(code_manager.CodeManager):
         self.xilinx_debug_core_manager = XilinxDebugCoreManager()
         self.project_config = self._load_project_config()
 
-        # TODO: sets xilinx as a hard default, change later on in the `project` 
-        # command
         self.static_submodules = {
                 "scripts": {
                     "path": ""
-                    },
-                }
+                },
+                "sim_util_pkg": {
+                    "path": "tb/util"
+                },
+                "sim_axi_pkg": {
+                    "path": "tb/axi"
+                },
+        }
 
         super().__init__("hdl")
 
@@ -397,8 +401,6 @@ get into that at some point. Sorry about that...
         updating the scripts repo is much more appropriate. On the other hand, 
         you don't want to overwrite any existing field in the project_config.
         """
-        print(submodule)
-        print(script)
         if submodule == "scripts" and script == "project_config":
 
             self._load_project_config()
