@@ -362,6 +362,11 @@ get into that at some point. Sorry about that...
                 "sim_top": s_top_module,
                 "simulator": "xsim",
                 "hw_version": "latest",
+                "sim_args_modelsim": "",
+                "sim_args_questa": "",
+                "sim_args_verilator": "",
+                "sim_args_xsim": "",
+                "sim_verbosity": 2
                 }
             if self._check_target_edit_allowed(s_target_file):
                 self._write_project_config()
