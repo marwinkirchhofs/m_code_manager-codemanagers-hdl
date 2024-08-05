@@ -14,6 +14,7 @@ import inspect
 import code_manager
 from .hdl_module_interface import HdlModuleInterface
 from .hdl_xilinx_debug_core_manager import XilinxDebugCoreManager
+from m_code_manager.util.mcm_config import McmConfig
 
 
 LANG_IDENTIFIERS = ["hdl"]
@@ -22,18 +23,26 @@ HDL_PROJECT_TYPES = ["xilinx", "lattice"]
 
 class _BoardSpecs():
 
-    PATH_CONSTRAINT_FILES = os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), os.pardir,
-            "templates", "hdl", "constraints")
+    # TODO: maybe that /usr/local/share part should be a project-wide variable 
+    # somewhere
+    PATH_CONSTRAINT_FILES_DEFAULT = "/usr/local/share/m_code_manager/hdl/constraints"
 
-    def __init__(self, xilinx_board_specifier, constraints_file_name):
+    def __init__(self, xilinx_board_specifier, constraints_file):
+        """
+        :constraints_file: path(!) to the constraints file - for specifying 
+        a constraints file in a standard location via name, or deriving it from 
+        the xilinx_board_specifier, use the factory method get_board_specs_obj
+        """
         self.xilinx_board_specifier = xilinx_board_specifier
-        self.constraints_file_name = constraints_file_name
-        self.constraints_file_realpath = os.path.join(
-                    self.PATH_CONSTRAINT_FILES, self.constraints_file_name)
+        self.constraints_file = constraints_file
+
+    @property
+    def constraints_file_name(self):
+        return os.path.basename(self.constraints_file)
 
     @classmethod
-    def get_board_specs_obj(cls, xilinx_board_specifier, constraints_file_name=None):
+    def get_board_specs_obj(cls, xilinx_board_specifier, constraints_file_name="",
+                            global_config: McmConfig = None):
         """If no constraints_file_name is given, the function tries to obtain the 
         correct one from a set of predefined constraint file name formats (such 
         as digilent). The idea: For every board, you need the xilinx board 
@@ -55,27 +64,53 @@ class _BoardSpecs():
         conclusion: whenever adding support for boards from a new vendor, check 
         if they have a naming convention, and if so add that to 
         __find_constraints_file.
-        """
-        if not constraints_file_name:
-            constraints_file_name = cls.__find_constraints_file(xilinx_board_specifier)
 
-        if not constraints_file_name:
-            raise Exception(
-f"No matching constraints file could be found for board specifier '{xilinx_board_specifier}'")
+        :constraints_file_name: Takes precedence over xilinx_board_specifier for 
+        obtaining the constraints file. Can be either a file name, or a path 
+        (absolute, or relative from project top level). Function fails if 
+        constraints_file_name is given and does not resolve into an existing 
+        file (instead of falling back to file name based on 
+        xilinx_board_specifier)
+
+        :raises: FileNotFoundError (see constraints_file_name, but also if file 
+        finding via xilinx_board_specifier fails)
+        """
+        constraints_file = cls.__find_constraints_file(
+                xilinx_board_specifier, constraints_file_name, global_config)
+
+        if not constraints_file:
+            if constraints_file_name:
+                raise FileNotFoundError(
+f"""No matching constraints file could be found for constraints file name 
+'{constraints_file_name}' (board specifier '{xilinx_board_specifier}')""")
+            else:
+                raise FileNotFoundError(
+f"""No matching constraints file could be found for board specifier 
+'{xilinx_board_specifier}'""")
         else:
-            return cls(xilinx_board_specifier, constraints_file_name)
+            return cls(xilinx_board_specifier, constraints_file)
 
     @classmethod
-    def __find_constraints_file(cls, xilinx_board_specifier):
-        """find the constraints file for a given board specifier, by checking 
-        known constraints file formats and the respective directories
+    def __find_constraints_file(cls, xilinx_board_specifier, constraints_file_name="",
+                                global_config: McmConfig = None):
+        """find the constraints file for a given board specifier, by checking if 
+        consraints_file_name itself is an existing path, and reverting to known 
+        constraints file formats and the respective directories otherwise
         """
 
-        # TODO: For the time being, the template file directory is hardcoded to:
-        # <root>/templates/hdl/constraints
-        # Maybe it's nice if in the feature that can somehow be parameterised or 
-        # configured, but that'll do it for now.
-        l_constraint_files = os.listdir(cls.PATH_CONSTRAINT_FILES)
+        if os.path.isfile(constraints_file_name):
+            return constraints_file_name
+
+        path_constraint_files = ""
+        if global_config:
+            path_constraint_files = global_config.get("constraints")
+        if not path_constraint_files:
+            path_constraint_files = cls.PATH_CONSTRAINT_FILES_DEFAULT
+
+        if os.path.isfile(os.path.join(path_constraint_files, constraints_file_name)):
+            return os.path.join(path_constraint_files, constraints_file_name)
+
+        l_constraint_files = os.listdir(path_constraint_files)
 
         # DIGILENT
         # digilent naming convention: arty-a7-35 -> Arty-A7-35-Master.xdc
@@ -89,7 +124,7 @@ f"No matching constraints file could be found for board specifier '{xilinx_board
         if l_matches:
             # classic, take the first list element, because if the list has more 
             # than one element, you have already messed up anyways
-            return l_matches[0]
+            return os.path.join(path_constraint_files, l_matches[0])
 
         # TODO: as a fallback, provide an option to custom implement tupels with 
         # prepared constraints files
@@ -301,7 +336,8 @@ get into that at some point. Sorry about that...
             else:
                 part = ""
             if board_part is not None:
-                board_specs = _BoardSpecs.get_board_specs_obj(board_part)
+                board_specs = _BoardSpecs.get_board_specs_obj(
+                        board_part, global_config=self.global_config)
             else:
                 board_specs = _BoardSpecs("", "")
 
@@ -320,12 +356,11 @@ get into that at some point. Sorry about that...
             # in the sense that it splits it up in timing and physical 
             # constraints - and make that a selectable option, because some 
             # people don't like splitting up makefiles
-            if board_specs.constraints_file_name:
+            if board_specs.constraints_file:
                 s_target_file = os.path.join(
                         self.PLACEHOLDERS['DIR_CONSTRAINTS'], board_specs.constraints_file_name)
                 if self._check_target_edit_allowed(s_target_file):
-                    shutil.copy2(board_specs.constraints_file_realpath,
-                                 self.PLACEHOLDERS['DIR_CONSTRAINTS'])
+                    shutil.copy2(board_specs.constraints_file, s_target_file)
 
             ##############################
             # PROJECT CONFIG FILE
@@ -521,24 +556,6 @@ get into that at some point. Sorry about that...
         """
 
         if simulator == "generic":
-
-            ##############################
-            # MODULE-INDEPENDENT
-            ##############################
-
-            # RESET INTERFACE
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_TB'], self.PLACEHOLDERS['FILE_TB_SV_IFC_RST'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("tb_sv_ifc_rst")
-                self._write_template(template_out, s_target_file)
-
-            # UTIL PKG
-            s_target_file = os.path.join(
-                    self.PLACEHOLDERS['DIR_TB'], self.PLACEHOLDERS['FILE_TB_SV_UTIL_PKG'])
-            if self._check_target_edit_allowed(s_target_file):
-                template_out = self._load_template("tb_sv_util_pkg")
-                self._write_template(template_out, s_target_file)
 
             ##############################
             # MODULE-SPECIFIC
