@@ -22,6 +22,7 @@ HDL_PROJECT_TYPES = ["xilinx", "lattice"]
 
 
 class _BoardSpecs():
+    # TODO: derive part from board_part
 
     # TODO: maybe that /usr/local/share part should be a project-wide variable 
     # somewhere
@@ -143,6 +144,7 @@ class HdlCodeManager(code_manager.CodeManager):
             'DIR_RTL':                      "rtl",
             'DIR_SIM':                      "sim",
             'DIR_SCRIPTS':                  "scripts",
+            'DIR_SCRIPTS_XIL':              "scripts_xil",
             'DIR_XILINX_IPS':               "xips",
             'DIR_CONSTRAINTS':              "constraints",
             'DIR_TB':                       "tb",
@@ -536,7 +538,7 @@ get into that at some point. Sorry about that...
             if not xil_tool:
                 xil_tool = "vivado"
             s_tcl_manage_prj = os.path.join(
-                self.PLACEHOLDERS['DIR_SCRIPTS'], self.PLACEHOLDERS['SCRIPT_MANAGE_XIL_PRJ'])
+                self.PLACEHOLDERS['DIR_SCRIPTS_XIL'], self.PLACEHOLDERS['SCRIPT_MANAGE_XIL_PRJ'])
             os.system(f"{xil_tool} -mode batch -source {s_tcl_manage_prj}")
 
     def _command_testbench(self, module, simulator="generic", flow="sv_class", **kwargs):
