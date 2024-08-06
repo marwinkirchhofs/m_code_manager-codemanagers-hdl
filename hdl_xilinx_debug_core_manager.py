@@ -43,7 +43,6 @@ r'[\s]*(logic|reg|wire)[\s]+ila_ctrl_([a-zA-Z0-9]+)_clk[\s]*;[\s]*'
         self.num_comparators = num_comparators
         self.trigger_type = trigger_type
 
-
     @property
     def trigger_type_xilinx_id(self):
         """translate the human-readable object attribute into the xilinx 
@@ -57,7 +56,6 @@ r'[\s]*(logic|reg|wire)[\s]+ila_ctrl_([a-zA-Z0-9]+)_clk[\s]*;[\s]*'
         else:
             # 'data' is the only possible option left
             return 2
-
 
     @classmethod
     def from_str(cls, s_input, hdl_lang="systemverilog"):
@@ -125,7 +123,6 @@ r'[\s]*(logic|reg|wire)[\s]+ila_ctrl_([a-zA-Z0-9]+)_clk[\s]*;[\s]*'
 
         else:
             raise Exception(f"Language {hdl_lang} not supported (yet)")
-
 
     def print_instantiation(self, probe_index=0):
         """prints the line to be used within a verilog/systemverilog ila ctrl 
@@ -207,7 +204,6 @@ r'[\s]*(logic|reg|wire)[\s]+(\[([\d]+):([\d]+)\][\s]+){0,1}vio_ctrl_(in|out)_([\
         self.radix = radix
         self.direction = direction
 
-
     @classmethod
     def from_str(cls, s_input, hdl_lang="systemverilog"):
         """analyse a verilog/systemverilog line of code and look for a vio_ctrl 
@@ -241,10 +237,9 @@ r'[\s]*(logic|reg|wire)[\s]+(\[([\d]+):([\d]+)\][\s]+){0,1}vio_ctrl_(in|out)_([\
                 return cls(name, direction, width, radix, init)
             else:
                 return None
-    
+
         else:
             raise Exception(f"Language {hdl_lang} not supported (yet)")
-
 
     def print_instantiation(self, probe_index=0):
         """prints the line to be used within a verilog/systemverilog vio ctrl 
@@ -273,12 +268,10 @@ class XilinxDebugCore(object):
 
 class XilinxIlaCore(XilinxDebugCore):
 
-
     def __init__(self, signals, module_name, name):
         self.signals = signals
         self.module_name = module_name
         self.name = name
-
 
     def generate_ip_instantiation(self, hdl_lang):
         """
@@ -305,7 +298,6 @@ f"    .clk                    (ila_ctrl_{self.name}_clk),"]
 
         return l_lines
 
-
     @classmethod
     def from_module(cls, s_module_file_name):
         """analyse an hdl module for vio-connected signal definitions
@@ -313,11 +305,10 @@ f"    .clk                    (ila_ctrl_{self.name}_clk),"]
         module_name, hdl_lang = XilinxDebugCoreManager.parse_module_file_name(s_module_file_name)
 
         with open(s_module_file_name, 'r') as f_in:
-            l_lines = f_in.readlines();
-
+            l_lines = f_in.readlines()
 
         # it is possible to have multiple ILAs defined in one module. Therefore,
-                       # we have to make a list of cores here
+        # we have to make a list of cores here
         l_ila_cores = []
         l_detected_ila_names = []
         # counter to hold the indices with which the signals will be 
@@ -326,10 +317,11 @@ f"    .clk                    (ila_ctrl_{self.name}_clk),"]
         for line in l_lines:
             ila_ctrl_sig = IlaSignal.from_str(line, hdl_lang)
             if ila_ctrl_sig:
-                
+
                 try:
+                    # TODO: figure out which Exception to listen to
                     core_index = l_detected_ila_names.index(ila_ctrl_sig.ila_name)
-                except:
+                except Exception:
                     core_index = -1
 
                 if core_index >= 0:
@@ -348,7 +340,6 @@ f"    .clk                    (ila_ctrl_{self.name}_clk),"]
             return l_ila_cores
         else:
             return None
-
 
     def generate_ip_declaration(self):
         """generate the tcl code lines for declaring the ILA IP in the format 
@@ -378,7 +369,7 @@ f"    .clk                    (ila_ctrl_{self.name}_clk),"]
         # TODO: parameterizable solution for the DATA DEPTH (now hardcoded)
         l_lines.extend([
     f"        CONFIG.C_NUM_OF_PROBES                  {{{len(self.signals)}}} \\",
-    f"        CONFIG.C_DATA_DEPTH                     {{16384}}                  \\",
+    "        CONFIG.C_DATA_DEPTH                     {{16384}}                  \\",
     "        ]                                                                   \\",
     "    ]"
         ])
@@ -392,14 +383,13 @@ class XilinxVioCore(XilinxDebugCore):
         self.signals = signals
         self.module_name = module_name
 
-
     def write_json_sig_list(self, file_name):
         """write a list of vio control signals into a json file, such that it can 
         later easily be picked up vio_ctrl.tcl
         """
-        
+
         # transform the list of VioSignal objects into a list of dictionaries
-        l_vio_ctrl_signals_dicts = [l.__dict__ for l in self.signals]
+        l_vio_ctrl_signals_dicts = [x.__dict__ for x in self.signals]
 
         # load the existing definitions, update the one for this module and 
         # write back the definitions
@@ -412,7 +402,6 @@ class XilinxVioCore(XilinxDebugCore):
 
         with open(file_name, 'w') as f_out:
             json.dump(vio_ctrl_signals, f_out, indent=4)
-
 
     def generate_ip_instantiation(self, hdl_lang):
         """
@@ -448,7 +437,6 @@ class XilinxVioCore(XilinxDebugCore):
         else:
             raise Exception(f"Invalid language: {hdl_lang}")
 
-
     @classmethod
     def from_module(cls, s_module_file_name):
         """analyse an hdl module for vio-connected signal definitions
@@ -456,7 +444,7 @@ class XilinxVioCore(XilinxDebugCore):
         module_name, hdl_lang = XilinxDebugCoreManager.parse_module_file_name(s_module_file_name)
 
         with open(s_module_file_name, 'r') as f_in:
-            l_lines = f_in.readlines();
+            l_lines = f_in.readlines()
 
         l_signals = []
         # counters to hold the indices with which the signals will be connected to 
@@ -469,15 +457,13 @@ class XilinxVioCore(XilinxDebugCore):
             if signal:
                 signal.index = counts_vio_ports[signal.direction]
                 # for the 10000th time, where on earth is the += in python?
-                counts_vio_ports[signal.direction] =                  \
-                            counts_vio_ports[signal.direction] + 1
+                counts_vio_ports[signal.direction] = counts_vio_ports[signal.direction] + 1
                 l_signals.append(signal)
 
         if l_signals:
             return cls(l_signals, module_name)
         else:
             return None
-
 
     def generate_ip_declaration(self):
         """generate the tcl code lines for declaring the VIO IP in the format 
@@ -529,16 +515,14 @@ class XilinxDebugCoreManager(object):
     The API of this class is basically solely process_verilog_module()
     """
 
-    S_GENERATED_CODE_START =    "    /* --- GENERATED CODE --- */"
-    S_GENERATED_CODE_END =      "    /* ---------------------- */"
-
+    S_GENERATED_CODE_START = "    /* --- GENERATED CODE --- */"
+    S_GENERATED_CODE_END = "    /* ---------------------- */"
 
     def __init__(self, vio_cores={}, ila_cores={}):
         # vio_cores and ila_cores are dict(XilinxDebugCore). The key is the name 
         # of the module in which the respective core is defined
         self._vio_cores = vio_cores
         self._ila_cores = ila_cores
-
 
     # defining vio_cores and ila_cores as properties for convenience: You 
     # sometimes need the dict with the module names, and sometimes just the list 
@@ -558,8 +542,7 @@ class XilinxDebugCoreManager(object):
 
     @property
     def list_ila_cores(self):
-        return list(itertools.chain( *(self._ila_cores.values())) )
-
+        return list(itertools.chain(*(self._ila_cores.values())))
 
     @staticmethod
     def parse_module_file_name(s_module_file_name):
@@ -579,7 +562,6 @@ class XilinxDebugCoreManager(object):
             raise Exception(f"Invalid file extension: {l_fields[1]}")
 
         return module_name, hdl_lang
-
 
     @staticmethod
     def get_signal_formats(print_output=False):
@@ -603,7 +585,6 @@ class XilinxDebugCoreManager(object):
                 print(line)
 
         return l_output_lines
-
 
     def write_xips_declaration(self, s_xip_declaration_file_name):
         """write the xip declaration in the format such that the code 
@@ -630,8 +611,7 @@ class XilinxDebugCoreManager(object):
             ])
 
         with open(s_xip_declaration_file_name, 'w') as f_out:
-            f_out.writelines([l+'\n' for l in l_lines_out])
-
+            f_out.writelines([x+'\n' for x in l_lines_out])
 
     def _parse_module(self, s_module_file_name):
         """Searches a given HDL module file for ila and vio definitions, and 
@@ -642,7 +622,6 @@ class XilinxDebugCoreManager(object):
         module_name, hdl_lang = XilinxDebugCoreManager.parse_module_file_name(s_module_file_name)
         self._vio_cores[module_name] = XilinxVioCore.from_module(s_module_file_name)
         self._ila_cores[module_name] = XilinxIlaCore.from_module(s_module_file_name)
-
 
     def _update_module(self, s_module_file_name):
         """in a given HDL file, update all present instantiations of debug cores 
@@ -662,9 +641,9 @@ class XilinxDebugCoreManager(object):
         # instantiation, and assume that there is no such structure in the code 
         # that has not been generated by this module
         s_pattern_inst_vio = r'[\s]*xip_vio_ctrl_' + module_name + r'[\s]+inst_xip_vio_ctrl_'   \
-                + module_name + r'[\s]*\([\s]*'
+            + module_name + r'[\s]*\([\s]*'
         s_pattern_inst_ila = r'[\s]*xip_ila_ctrl_' + module_name + r'_[a-zA-Z0-9]+'             \
-                + r'[\s]+inst_xip_ila_ctrl_' + module_name + r'_[a-zA-Z0-9]+[\s]*\([\s]*'
+            + r'[\s]+inst_xip_ila_ctrl_' + module_name + r'_[a-zA-Z0-9]+[\s]*\([\s]*'
         s_pattern_inst_debug_core = r'(' + s_pattern_inst_vio + '|' + s_pattern_inst_ila + r')'
         pattern_inst_debug_core = re.compile(s_pattern_inst_debug_core)
 
@@ -687,37 +666,37 @@ class XilinxDebugCoreManager(object):
         # if that doesn't fully break this function.
         pointer_in_module_inst = False
         pointer_in_generated_code = False
-        for l in l_lines_old:
+        for line in l_lines_old:
             if not pointer_in_module_inst:
                 # first match for an existing debug core instantiation, then for 
                 # the end of the module definition
 
-                if pattern_inst_debug_core.match(l):
+                if pattern_inst_debug_core.match(line):
                     pointer_in_module_inst = True
-                elif l.find(self.S_GENERATED_CODE_START) != -1:
+                elif line.find(self.S_GENERATED_CODE_START) != -1:
                     pointer_in_generated_code = True
-                elif l.find(self.S_GENERATED_CODE_END) != -1:
+                elif line.find(self.S_GENERATED_CODE_END) != -1:
                     pointer_in_generated_code = False
 
-                elif re.match(r'[\s]*endmodule[\s]', l):
+                elif re.match(r'[\s]*endmodule[\s]', line):
                     # we have to add the line breaks to the list that we get 
                     # from the function (yes, you could've also made that 
                     # a parameter to the function...)
                     l_lines_new.append(self.S_GENERATED_CODE_START + "\n")
                     for core in self.dict_ila_cores[module_name]:
                         l_lines_new.extend(
-                            [l+"\n" for l in core.generate_ip_instantiation(hdl_lang)])
+                            [x+"\n" for x in core.generate_ip_instantiation(hdl_lang)])
                         l_lines_new.append("\n")
                     if self.dict_vio_cores[module_name]:
                         core = self.dict_vio_cores[module_name]
                         l_lines_new.extend(
-                            [l+"\n" for l in core.generate_ip_instantiation(hdl_lang)])
+                            [x+"\n" for x in core.generate_ip_instantiation(hdl_lang)])
                         l_lines_new.append("\n")
                     # remove the empty line after the last module instantiation
                     l_lines_new.pop()
                     l_lines_new.append(self.S_GENERATED_CODE_END + "\n")
                     # add the endmodule line after instantiating the debug cores
-                    l_lines_new.append(l)
+                    l_lines_new.append(line)
                     break
                 else:
                     # checking for pointer_in_generated_code, because that 
@@ -725,19 +704,18 @@ class XilinxDebugCoreManager(object):
                     # get generated (meaning you would otherwise add an empty 
                     # line with every call)
                     if not pointer_in_generated_code:
-                        l_lines_new.append(l)
+                        l_lines_new.append(line)
             else:
                 # match end of module instantiation
-                if re.match(r'[\s]*\)[\s]*;[\s]*', l):
+                if re.match(r'[\s]*\)[\s]*;[\s]*', line):
                     pointer_in_module_inst = False
 
         with open(s_module_file_name, 'w') as f_out:
             f_out.writelines(l_lines_new)
 
-
     def process_module(self, s_module_file_name,
-            s_json_file_name_signals="vio_ctrl_signals.json",
-            s_xip_declaration_dir="xips/xips_debug_cores.tcl"):
+                       s_json_file_name_signals="vio_ctrl_signals.json",
+                       s_xip_declaration_dir="xips/xips_debug_cores.tcl"):
         """update the debug core instantiation in a verilog module:
         - find vio_ctrl signal definitions (see parse_verilog_module)
         - write/update the vio_ctrl signals json file (to be read by 
@@ -747,7 +725,7 @@ class XilinxDebugCoreManager(object):
           one, remove that. Insert the new instantiation at the very end of the 
           module (that is, right before 'endmodule')
         """
-        
+
         module_name, hdl_lang = self.parse_module_file_name(s_module_file_name)
         self._parse_module(s_module_file_name)
 
@@ -757,7 +735,7 @@ class XilinxDebugCoreManager(object):
         s_xip_declaration_file_name = os.path.join(
                 s_xip_declaration_dir, "xips_debug_cores_" + module_name + ".tcl")
         self.write_xips_declaration(s_xip_declaration_file_name)
-    
+
 
 #         ##############################
 #         # RTL MODULE FILE
