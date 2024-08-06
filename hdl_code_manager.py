@@ -146,6 +146,7 @@ class HdlCodeManager(code_manager.CodeManager):
             'DIR_SCRIPTS':                  "scripts",
             'DIR_SCRIPTS_XIL':              "scripts_xil",
             'DIR_XILINX_IPS':               "xips",
+            'DIR_XIP_CTRL':                 "xip_ctrl",
             'DIR_CONSTRAINTS':              "constraints",
             'DIR_TB':                       "tb",
             'DIR_HW_EXPORT':                "hw_export",
@@ -620,13 +621,17 @@ get into that at some point. Sorry about that...
         else:
             print(f"Simulator/Testbench flow {simulator} is not implemented or supported yet")
 
-    def _command_xip_ctrl(self, target=None, print_signal_formats=False, **kwargs):
+    def _command_xip_ctrl(self, target=None,
+                          print_signal_formats=False, write_user_template=False,
+                          **kwargs):
         """invoke XilinxDebugCoreManager to generate vio ctrl IP core target files, 
         based on a set of vio-connection signals.
 
-        If print_signal_formats is specified, the command only prints the 
+        :print_signal_formats: If specified, the command only prints the 
         required formats for ila and vio signals, and then exits without any 
         processing.
+        :write_user_template: If specified, the command only tries to print the 
+        user template to `xip_ctrl/<vio_top>_vio_ctrl.tcl`
 
         If no target (-t <target>) is specified, the top level module is 
         retrieved from the project config json file, and that file is analysed 
@@ -634,6 +639,15 @@ get into that at some point. Sorry about that...
         passing -t <target> (module name, not file name). Then the file for that 
         module is needs to be found in the project's RTL directory.
         """
+        # TODO: add to the documentation: How to control the vio? 2 options:
+        # 1. via a specific `xip_ctrl/<vio_top>_vio_ctrl.tcl` (with <vio_top> as 
+        # specified in project_config)
+        # 2. fallback to standard `scripts_xil/vio_ctrl.tcl`
+        # Option 1 basically has to import option 2 for the entire API, and then 
+        # on top of that can specify its own API. The make command automatically 
+        # checks if option 1 is present, and if it isn't, reverts to option 2.
+        # --write_user_template generates a skeleton for the option 2 script.
+
         # TODO: retrieving the top level module file is currently hardcoded to 
         # systemverilog. Be a little more inclusive...
 
@@ -643,6 +657,15 @@ get into that at some point. Sorry about that...
             # PRINT SIGNAL FORMATS
             ##############################
             XilinxDebugCoreManager.get_signal_formats(print_output=True)
+
+        elif write_user_template:
+            self._load_project_config()
+            target_module = self.project_config['vio_top']
+            s_target_file = os.path.join(
+                    self.PLACEHOLDERS['DIR_XIP_CTRL'], target_module + "_vio_ctrl.tcl")
+            if self._check_target_edit_allowed(s_target_file):
+                template_out = self._load_template("vio_ctrl_user")
+                self._write_template(template_out, s_target_file, create_path=True)
 
         else:
 
