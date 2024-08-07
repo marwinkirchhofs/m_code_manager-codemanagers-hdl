@@ -685,7 +685,7 @@ get into that at some point. Sorry about that...
             # the first one. But if there is more than one match, then the root of 
             # error is not my sloppy coding.
             # TODO: fix invalid escape sequence warning
-            f_match_target_module = lambda x: re.match(target_module + "\.sv", x)
+            f_match_target_module = lambda x: re.match(target_module + r"\.sv", x)
             s_target_module_file = [
                     i for i in l_rtl_files if bool(f_match_target_module(i))][0]
             s_target_module_path = os.path.join(

@@ -67,7 +67,7 @@ r'[\s]*(logic|reg|wire)[\s]+ila_ctrl_([a-zA-Z0-9]+)_clk[\s]*;[\s]*'
 
         ILA signals need to be defined in the following way in 
         verilog/systemverilog files (for clock look below):
-        "logic"/"reg"/"wire" [\[<width_upper>:<width_lower>\]] 
+        "logic"/"reg"/"wire" [ '['<width_upper>:<width_lower>']' ] 
         ila_ctrl_<ila_name>_<name>; // trigger_type=<trigger_type> comparators=<num_comparators>
         - ila_name is the name of the specific ILA (there can be multiple ILAs 
           required even in one module, e.g. if you have multiple clock domains 
@@ -141,7 +141,7 @@ class VioSignal(object):
 
     VIO signals need to be defined in the following way in verilog/systemverilog 
     files (for clock look below):
-    "logic"/"reg"/"wire" [\[<width_upper>:<width_lower>\]] 
+    "logic"/"reg"/"wire" [ '['<width_upper>:<width_lower>']' ] 
     vio_ctrl_<"in"/"out">_<name>; // radix=<radix> init=<val>
     - no width is automatically interpreted as width = 1.
         - otherwise, width = width_upper - width_lower + 1
