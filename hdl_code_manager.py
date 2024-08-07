@@ -691,8 +691,11 @@ get into that at some point. Sorry about that...
             s_target_module_path = os.path.join(
                             self.PLACEHOLDERS['DIR_RTL'], s_target_module_file)
 
+            file_vio_ctrl_signals = os.path.join(
+                    self.PLACEHOLDERS['DIR_XIP_CTRL'],
+                    self.PLACEHOLDERS['FILE_XILINX_VIO_CONTROL_SIGNALS_CONFIG'])
+
             self.xilinx_debug_core_manager.process_module(
                     s_target_module_path,
                     s_xip_declaration_dir=self.PLACEHOLDERS['DIR_XILINX_IPS'],
-                    s_json_file_name_signals=self.PLACEHOLDERS['FILE_XILINX_VIO_CONTROL_SIGNALS_CONFIG']
-                                                         )
+                    s_json_file_name_signals=file_vio_ctrl_signals)

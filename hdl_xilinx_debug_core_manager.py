@@ -5,6 +5,8 @@ import os
 import json
 import itertools
 
+import m_code_manager.util.files as files
+
 # TODO: For VIOs, add something to the comment format so that signals can have 
 # a false path specified. In that case, the VIO would register that and would 
 # generate false path constraints for these signals (and figure out in Vivado 
@@ -383,10 +385,18 @@ class XilinxVioCore(XilinxDebugCore):
         self.signals = signals
         self.module_name = module_name
 
-    def write_json_sig_list(self, file_name):
+    def write_json_sig_list(self, file):
         """write a list of vio control signals into a json file, such that it can 
         later easily be picked up vio_ctrl.tcl
+        Does extend an existing signal list (file_name), instead of overwriting 
+        the file. Just if a signal list already exists for this module, that 
+        part of the file gets overwritten.
+
+        :file: the full (project-relative) path of the file to be 
+        extended/written
         """
+
+        files.create_file_path(file)
 
         # transform the list of VioSignal objects into a list of dictionaries
         l_vio_ctrl_signals_dicts = [x.__dict__ for x in self.signals]
@@ -394,13 +404,13 @@ class XilinxVioCore(XilinxDebugCore):
         # load the existing definitions, update the one for this module and 
         # write back the definitions
         vio_ctrl_signals = {}
-        if os.path.isfile(file_name):
-            with open(file_name, 'r') as f_in:
+        if os.path.isfile(file):
+            with open(file, 'r') as f_in:
                 vio_ctrl_signals = json.load(f_in)
 
         vio_ctrl_signals[self.module_name] = l_vio_ctrl_signals_dicts
 
-        with open(file_name, 'w') as f_out:
+        with open(file, 'w') as f_out:
             json.dump(vio_ctrl_signals, f_out, indent=4)
 
     def generate_ip_instantiation(self, hdl_lang):
@@ -724,6 +734,8 @@ class XilinxDebugCoreManager(object):
           vio_ctrl ip: Scan the module for an existing instantiation, if you find 
           one, remove that. Insert the new instantiation at the very end of the 
           module (that is, right before 'endmodule')
+
+        :s_json_file_name_signals: see XilinxVioCore.write_json_sig_list()
         """
 
         module_name, hdl_lang = self.parse_module_file_name(s_module_file_name)
