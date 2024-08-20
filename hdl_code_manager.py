@@ -162,7 +162,7 @@ class HdlCodeManager(code_manager.CodeManager):
             'SCRIPT_MANAGE_BUILDS':         "manage_build_files.bash",
             'SCRIPT_XILINX_VIO_CONTROL':    "vio_ctrl.tcl",
             'FILE_PROJECT_CONFIG':          "project_config.json",
-            'FILE_MAKE_VARIABLES':          "var.make",
+            'FILE_MAKE_VARIABLES':          "var.mk",
             'FILE_XILINX_VIO_CONTROL_SIGNALS_CONFIG':   "vio_ctrl_signals.json",
             'FILE_XILINX_IP_DEF_USER':      "xips_user.tcl",
             'FILE_XILINX_IP_DEBUG_CORES':   "xips_debug_cores.tcl",
