@@ -149,7 +149,7 @@ class HdlCodeManager(code_manager.CodeManager):
             'DIR_XIP_CTRL':                 "xip_ctrl",
             'DIR_CONSTRAINTS':              "constraints",
             'DIR_TB':                       "tb",
-            'DIR_HW_EXPORT':                "hw_export",
+            'DIR_HW_EXPORT':                "build",
             'DIR_XILINX_HW_BUILD_LOG':      "hw_build_log",
             'DIR_BLOCKDESIGN':              "bd",
             'SCRIPT_READ_SOURCES':          "read_sources.tcl",
