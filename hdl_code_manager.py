@@ -199,6 +199,9 @@ class HdlCodeManager(code_manager.CodeManager):
                 "sim_axi_pkg": {
                     "path": "tb/axi"
                 },
+                "axi_lib": {
+                    "path": "rtl/axi_lib"
+                },
         }
 
         super().__init__("hdl")
