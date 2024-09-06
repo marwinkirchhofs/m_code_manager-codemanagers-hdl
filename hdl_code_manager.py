@@ -202,6 +202,9 @@ class HdlCodeManager(code_manager.CodeManager):
                 "axi_lib": {
                     "path": "rtl/axi_lib"
                 },
+                "mcm_rtl_lib": {
+                    "path": "rtl/mcm_rtl_lib"
+                },
         }
 
         super().__init__("hdl")
